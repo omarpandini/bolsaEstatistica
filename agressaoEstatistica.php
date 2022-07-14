@@ -1,0 +1,307 @@
+<?php
+$dtOperacaoIni = '2022-07-12';
+$dtOperacaoFim = '2022-07-12';
+$hrLimiteOperacao = 10;
+$nmPapel = 'WINFUT';
+$dsVariacao = '12P';
+
+$conn = new PDO("mysql:dbname=bolsav;host=localhost", "root", "admin");
+
+$stmt = $conn->prepare("
+select *
+      ,abs(tbl.vl_saldo)vl_saldo_abs
+  from tbl_agressao tbl
+where tbl.dt_operacao between :dt_operacao_ini and :dt_operacao_fim 
+  and tbl.nm_papel = :nm_papel
+  and tbl.ds_variacao = :ds_variacao
+  and substr(tbl.hr_operacao,1,2) <= :hr_operacao
+order by tbl.id_reg desc
+");
+
+$stmt->bindParam(":dt_operacao_ini", $dtOperacaoIni);
+$stmt->bindParam(":dt_operacao_fim", $dtOperacaoFim);
+$stmt->bindParam(":hr_operacao", $hrLimiteOperacao);
+$stmt->bindParam(":nm_papel", $nmPapel);
+$stmt->bindParam(":ds_variacao", $dsVariacao);
+
+$stmt->execute();
+
+$results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+//Array que irá armazenar os filtros de mínima e máxima e o título do card
+$filtro = array();
+
+for ($i = 1; $i <= 15; $i++) {
+    $vl_minimo = ($i * 1000);
+    $vl_maximo = ($i * 1000) + 999;
+    $titulo = 'Barras Saldo ' . $vl_minimo . ' - ' . $vl_maximo;
+    array_push($filtro, array('titulo' => $titulo, 'vl_minimo' => $vl_minimo, 'vl_maximo' => $vl_maximo));
+}
+
+//Array que irá armazenar os resultados
+$resultado = array();
+
+
+foreach ($filtro as $value) {
+    $contadorBarras = 0;
+    $contadorBarrasSaldoPos = 0;
+    $contadorBarrasSaldoNeg = 0;
+    $contadorBarrasPosSaldoPos = 0;
+    $contadorBarrasPosSaldoNeg = 0;
+
+    $contadorBarrasNegSaldoPos = 0;
+    $contadorBarrasNegSaldoNeg = 0;
+
+    $contadorOperacoesCp = 0;
+    $contadorOperacoesCpGain = 0;
+    $contadorOperacoesCpLoss = 0;
+
+    $contadorOperacoesVd = 0;
+    $contadorOperacoesVdGain = 0;
+    $contadorOperacoesVdLoss = 0;
+
+    $debug = '';
+    $gatilho = '';
+
+    foreach ($results as $sql) {
+
+        $debug = 'hora ' . $sql['hr_operacao'].' '.$value['vl_minimo'].' - '.$value['vl_maximo'];;
+
+        //Gatilho de operação foi ativado CP = Compra  VD = Venda
+        switch ($gatilho) {
+            case 'CP':  // Compra
+
+                if ($sql['vl_fechamento'] > $sql['vl_abertura']) {
+                    $debug .= ' GAIN ';
+                    $contadorOperacoesCpGain++;
+                }else{
+                    $debug .= ' LOSS ';
+                    $contadorOperacoesCpLoss++;
+                }
+
+                $gatilho = '';
+
+                break;
+            case 'VD':  // Venda
+                
+                if ($sql['vl_fechamento'] < $sql['vl_abertura']) {
+                    $debug .= ' GAIN ';
+                    $contadorOperacoesVdGain++;
+                }else{
+                    $debug .= ' LOSS ';
+                    $contadorOperacoesVdLoss++;
+                }
+
+                $gatilho = '';
+                break;
+
+            default:
+                # code...
+                break;
+        }
+
+        if ($sql['vl_saldo_abs'] >= $value['vl_minimo'] and $sql['vl_saldo_abs'] <=  $value['vl_maximo']) {
+            $contadorBarras++;
+            $debug = 'hora ' . $sql['hr_operacao'].' '.$value['vl_minimo'].' - '.$value['vl_maximo'];
+
+            if ($sql['vl_saldo'] > 0) {
+                $contadorBarrasSaldoPos++;
+
+                $debug .= ' saldo pos <strong>'. $sql['vl_saldo'].'</strong>';
+
+                if ($sql['vl_fechamento'] > $sql['vl_abertura']) {
+                    $contadorBarrasPosSaldoPos++;
+                    $debug .= ' barra pos';
+
+                    if(empty($gatilho)){
+                      $gatilho = 'CP';
+                      $debug .= '<span style="background-color:#31d65d;"><strong> GATILHO '.$gatilho.'</strong></span>';                    
+                      $contadorOperacoesCp++;
+                    }
+
+                } else {
+                    $contadorBarrasPosSaldoNeg++;
+                    $debug .= ' barra neg';
+                }
+            } else {
+                $contadorBarrasSaldoNeg++;
+
+                $debug .= ' saldo neg <strong>'. $sql['vl_saldo'].'</strong>';;
+
+                if ($sql['vl_fechamento'] > $sql['vl_abertura']) {
+                    $contadorBarrasNegSaldoPos++;
+                    $debug .= ' barra pos';
+                } else {
+                    $contadorBarrasNegSaldoNeg++;
+                    $debug .= ' barra neg';
+                    
+                    
+                    if(empty($gatilho)){
+                        $gatilho = 'VD';
+                        $contadorOperacoesVd++;
+                        $debug .= '<span style="background-color:#db3a1a;color:white;"><strong> GATILHO '.$gatilho.'</strong></span>';
+                      }
+                      
+                                        
+                }
+            }
+            
+        }
+       // echo $debug . '<br>';
+    }
+
+    array_push(
+        $resultado,
+        array(
+            'titulo' => $value['titulo'],
+            'vl_minimo' => $value['vl_minimo'],
+            'vl_maximo' => $value['vl_maximo'],
+            'total_barras' => $contadorBarras,
+            'total_barras_saldo_pos' => $contadorBarrasSaldoPos,
+            'total_barras_saldo_neg' => $contadorBarrasSaldoNeg,
+            'total_barras_pos_saldo_pos' => $contadorBarrasPosSaldoPos,
+            'total_barras_pos_saldo_neg' => $contadorBarrasPosSaldoNeg,
+            'total_barras_neg_saldo_pos' => $contadorBarrasNegSaldoPos,
+            'total_barras_neg_saldo_neg' => $contadorBarrasNegSaldoNeg,
+            'total_operacoes_cp' => $contadorOperacoesCp,
+            'total_operacoes_cp_gain' => $contadorOperacoesCpGain,
+            'total_operacoes_cp_loss' => $contadorOperacoesCpLoss,
+            'total_operacoes_vd' => $contadorOperacoesVd,
+            'total_operacoes_vd_gain' => $contadorOperacoesVdGain,
+            'total_operacoes_vd_loss' => $contadorOperacoesVdLoss
+        )
+
+    );
+}
+
+
+?>
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Estatísticas Agressão</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+    <style>
+        #header {
+            display: flex;
+            justify-content: center;
+        }
+
+        h1 {
+            text-align: center;
+            background-color: #348de0;
+            border-radius: 10px;
+            padding: 10px;
+            width: 50%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="header">
+        <h1>Estatísticas</h1>
+    </div>
+
+    <div class="container">
+
+        <div class="card text-center">
+            <div class="card-header">
+                Parâmetros
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">Parâmetros Utilizados</h5>
+                <p class="card-text"> <strong> Data: </strong> <?php echo $dtOperacaoIni; ?>' - '<?php echo $dtOperacaoFim; ?> </p>
+                <p class="card-text"><strong>Papel: </strong> <?php echo $nmPapel; ?> </p>
+                <p class="card-text"><strong>Frequência: </strong> <?php echo $dsVariacao; ?> </p>
+                <p class="card-text"><strong>Limite Horário: </strong> <?php echo $hrLimiteOperacao; ?> </p>
+                <a href="#" class="btn btn-primary">Atualizar</a>
+            </div>
+            <div class="card-footer text-muted">
+
+            </div>
+        </div>
+
+        <br><br>
+
+        <?php
+        retornaCard($resultado);
+        ?>
+
+
+    </div>
+
+</body>
+
+</html>
+
+<?php
+
+function retornaCard($resultado)
+{
+
+    $i = 1;
+    $card = '';
+
+    foreach ($resultado as $value) {
+        if ($i == 1) {
+            $card .= '<div class="row">';
+        }
+
+        $total_operacoes_cp = $value['total_operacoes_cp'];
+        if ($total_operacoes_cp == 0) {
+            $total_operacoes_cp =1;
+        }
+
+        
+        $total_operacoes_vd = $value['total_operacoes_vd'];
+        if ($total_operacoes_vd == 0) {
+            $total_operacoes_vd =1;
+        }
+
+        $percAcertoCp = $value['total_operacoes_cp_gain'] / $total_operacoes_cp * 100;
+        $percAcertoCp = round($percAcertoCp,2);
+
+        $percAcertoVd = $value['total_operacoes_vd_gain'] / $total_operacoes_vd * 100;
+        $percAcertoVd = round($percAcertoVd,2);
+
+
+        $card .= '<div class="col">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>' . $value['titulo'] . '</h5>
+                        </div>
+                        <div class="card-body">
+
+                            <h4>Total Barras <span class="badge bg-secondary">' . $value['total_barras'] . '</span></h4>
+                            <h4 style="color:green;">Total Saldo Pos <span class="badge bg-secondary">' . $value['total_barras_saldo_pos'] . '</span> P -' . $value['total_barras_pos_saldo_pos'] . ' N - ' . $value['total_barras_pos_saldo_neg'] . '</h4>
+                            <h4 style="color:red;">Total Saldo Neg <span class="badge bg-secondary">' . $value['total_barras_saldo_neg'] . '</span>  P -' . $value['total_barras_neg_saldo_pos'] . ' N - ' . $value['total_barras_neg_saldo_neg'] . '</h4>
+                            <h4>Total Operações CP <span class="badge bg-secondary">' . $value['total_operacoes_cp'] . '</span> G - '.$value['total_operacoes_cp_gain'].' | L -'.$value['total_operacoes_cp_loss'].' | Acerto:'.$percAcertoCp.'%</h4>
+                            
+                            <h4>Total Operações VD <span class="badge bg-secondary">' . $value['total_operacoes_vd'] . '</span> G - '.$value['total_operacoes_vd_gain'].' | L -'.$value['total_operacoes_vd_loss'].' | Acerto:'.$percAcertoVd.'%</h4>
+                            
+                            
+                            </div>
+                    </div>
+                </div>';
+
+
+        if ($i == 2) {
+            $card .= '</div><br>';
+            $i = 0;
+        }
+
+        $i++;
+    }
+
+
+    $card .= '</div>';
+    echo ($card);
+}
+?>
