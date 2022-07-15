@@ -248,7 +248,7 @@ foreach ($filtro as $value) {
                         <div class="col-sm-2">
                             <select class="form-select" aria-label="Default select example" id="nmPapel" name="nmPapel">
                                 <option selected value="WINFUT">Mini Índice</option>
-                                <option value="WDOFUT">Mini Dólar</option>
+                                <option value="WDOLFUT">Mini Dólar</option>
                             </select>
                         </div>
                     </div>
@@ -257,6 +257,9 @@ foreach ($filtro as $value) {
                         <label for="idVariacao" class="col-sm-2 col-form-label">Variação</label>
                         <div class="col-sm-2">
                             <select class="form-select" aria-label="Default select example" id="idVariacao" name="idVariacao">
+                                <option  value="4P">4P</option>
+                                <option  value="5P">5P</option>
+                                <option  value="6P">6P</option>
                                 <option  value="10P">10P</option>
                                 <option  selected value="12P">12P</option>
                                 <option  value="15P">15P</option>
