@@ -9,7 +9,13 @@ if (isset($_POST['submit'])) {
     $hrOperacao = $_POST['hrOperacao'];
     $idDebug = $_POST['idDebug'];
 
+    $nrPontos = substr($dsVariacao,0,strpos($dsVariacao,'P')) ;
+
+    echo 'pos '.$nrPontos ;
+
 }
+
+
 
 
 
@@ -247,8 +253,8 @@ foreach ($filtro as $value) {
                         <label for="nmPapel" class="col-sm-2 col-form-label">Papel</label>
                         <div class="col-sm-2">
                             <select class="form-select" aria-label="Default select example" id="nmPapel" name="nmPapel">
-                                <option selected value="WINFUT">Mini Índice</option>
-                                <option value="WDOLFUT">Mini Dólar</option>
+                                <option <?php if($nmPapel == 'WINFUT') { ?> selected <?php }; ?>  value="WINFUT">Mini Índice</option>
+                                <option <?php if($nmPapel == 'WDOLFUT') { ?> selected <?php }; ?>  value="WDOLFUT">Mini Dólar</option>
                             </select>
                         </div>
                     </div>
@@ -257,13 +263,13 @@ foreach ($filtro as $value) {
                         <label for="idVariacao" class="col-sm-2 col-form-label">Variação</label>
                         <div class="col-sm-2">
                             <select class="form-select" aria-label="Default select example" id="idVariacao" name="idVariacao">
-                                <option  value="4P">4P</option>
-                                <option  value="5P">5P</option>
-                                <option  value="6P">6P</option>
-                                <option  value="10P">10P</option>
-                                <option  selected value="12P">12P</option>
-                                <option  value="15P">15P</option>
-                                <option  value="20P">20P</option>
+                                <option <?php if($dsVariacao == '4P') { ?> selected <?php }; ?>  value="4P">4P</option>
+                                <option <?php if($dsVariacao == '5P') { ?> selected <?php }; ?> value="5P">5P</option>
+                                <option <?php if($dsVariacao == '6P') { ?> selected <?php }; ?> value="6P">6P</option>
+                                <option <?php if($dsVariacao == '10P') { ?> selected <?php }; ?> value="10P">10P</option>
+                                <option <?php if($dsVariacao == '12P') { ?> selected <?php }; ?> value="12P">12P</option>
+                                <option <?php if($dsVariacao == '15P') { ?> selected <?php }; ?> value="15P">15P</option>
+                                <option <?php if($dsVariacao == '20P') { ?> selected <?php }; ?> value="20P">20P</option>
                             </select>
                         </div>
                     </div>
@@ -271,7 +277,7 @@ foreach ($filtro as $value) {
                     <div class="mb-3 row">
                         <label for="idVariacao" class="col-sm-2 col-form-label">Max Horário</label>
                         <div class="col-sm-2">
-                          <input type="number" min="10" max="17" class="form-control" id="hrOperacao" name="hrOperacao" value="<?php echo $hrOperacao; ?>">
+                          <input type="number" min="10" max="17" class="form-control" id="hrOperacao" name="hrOperacao" value="<?php echo empty($hrOperacao)? 10 : $hrOperacao; ?>">
                         </div>
                     </div>
                     
@@ -334,6 +340,9 @@ function retornaCard($resultado)
         $percAcertoVd = $value['total_operacoes_vd_gain'] / $total_operacoes_vd * 100;
         $percAcertoVd = round($percAcertoVd, 2);
 
+        $resultado = ( $value['total_operacoes_cp_gain'] -  $value['total_operacoes_cp_loss']) + ($value['total_operacoes_vd_gain']  - $value['total_operacoes_vd_loss']);
+        $resultadoInverso = ( $value['total_operacoes_cp_loss'] -  $value['total_operacoes_cp_gain']) + ($value['total_operacoes_vd_loss']  - $value['total_operacoes_vd_gain']);
+
 
         $card .= '<div class="col">
                     <div class="card">
@@ -345,12 +354,11 @@ function retornaCard($resultado)
                             <h4>Total Barras <span class="badge bg-secondary">' . $value['total_barras'] . '</span></h4>
                             <h4 style="color:green;">Total Saldo Pos <span class="badge bg-secondary">' . $value['total_barras_saldo_pos'] . '</span> P -' . $value['total_barras_pos_saldo_pos'] . ' N - ' . $value['total_barras_pos_saldo_neg'] . '</h4>
                             <h4 style="color:red;">Total Saldo Neg <span class="badge bg-secondary">' . $value['total_barras_saldo_neg'] . '</span>  P -' . $value['total_barras_neg_saldo_pos'] . ' N - ' . $value['total_barras_neg_saldo_neg'] . '</h4>
-                            <h4>Total Operações CP <span class="badge bg-secondary">' . $value['total_operacoes_cp'] . '</span> G - ' . $value['total_operacoes_cp_gain'] . ' | L -' . $value['total_operacoes_cp_loss'] . ' | Acerto:' . $percAcertoCp . '%</h4>
-                            
+                            <h4>Total Operações CP <span class="badge bg-secondary">' . $value['total_operacoes_cp'] . '</span> G - ' . $value['total_operacoes_cp_gain'] . ' | L -' . $value['total_operacoes_cp_loss'] . ' | Acerto:' . $percAcertoCp . '%</h4>                            
                             <h4>Total Operações VD <span class="badge bg-secondary">' . $value['total_operacoes_vd'] . '</span> G - ' . $value['total_operacoes_vd_gain'] . ' | L -' . $value['total_operacoes_vd_loss'] . ' | Acerto:' . $percAcertoVd . '%</h4>
-                            
-                            
-                            </div>
+                            <h4>Resultado Operações <span class="badge bg-secondary">' . $resultado.' </h4>
+                            <h4>Resultado Inverso Operações <span class="badge bg-secondary">' . $resultadoInverso.' </h4>
+                        </div>
                     </div>
                 </div>';
 

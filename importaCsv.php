@@ -1,12 +1,13 @@
 <?php
 require_once('util.php');
 
-$filename = "wdol_6p_1407.csv";
+$filename = "win_12P_1707.csv";
 
 $conn = new PDO("mysql:dbname=bolsav;host=localhost", "root", "admin");
 
-$nmPapel = 'WDOLFUT';
-$dsVariacao = '6P';
+//$nmPapel = 'WDOLFUT';
+$nmPapel = 'WINFUT';
+$dsVariacao = '12P';
 
 $data;
 $hora;
