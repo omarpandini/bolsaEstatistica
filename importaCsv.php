@@ -1,13 +1,13 @@
 <?php
 require_once('util.php');
 
-$filename = "win_12P_1707.csv";
+$filename = "WINFUT_20P.csv";
 
 $conn = new PDO("mysql:dbname=bolsav;host=localhost", "root", "admin");
 
-//$nmPapel = 'WDOLFUT';
-$nmPapel = 'WINFUT';
-$dsVariacao = '12P';
+$nmPapel = substr($filename,0,6);
+$dsVariacao = substr($filename,7,3);
+$dsVariacao = str_replace('.','',$dsVariacao);
 
 $data;
 $hora;

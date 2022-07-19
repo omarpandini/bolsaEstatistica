@@ -48,6 +48,8 @@ $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 //Array que irá armazenar os filtros de mínima e máxima e o título do card
 $filtro = array();
+
+array_push($filtro, array('titulo' => 'Barras Saldo 0 - 999', 'vl_minimo' => 0, 'vl_maximo' => 999));
    
 for ($i = 1; $i <= 15; $i++) {
     $vl_minimo = ($i * 1000);
@@ -254,7 +256,7 @@ foreach ($filtro as $value) {
                         <div class="col-sm-2">
                             <select class="form-select" aria-label="Default select example" id="nmPapel" name="nmPapel">
                                 <option <?php if($nmPapel == 'WINFUT') { ?> selected <?php }; ?>  value="WINFUT">Mini Índice</option>
-                                <option <?php if($nmPapel == 'WDOLFUT') { ?> selected <?php }; ?>  value="WDOLFUT">Mini Dólar</option>
+                                <option <?php if($nmPapel == 'WDOFUT') { ?> selected <?php }; ?>  value="WDOFUT">Mini Dólar</option>
                             </select>
                         </div>
                     </div>
