@@ -1,7 +1,7 @@
 <?php
 require_once('util.php');
 
-$filename = "WDOFUT_6P.csv";
+$filename = "WINFUT_20P.csv";
 
 $conn = new PDO("mysql:dbname=bolsav;host=localhost", "root", "admin");
 

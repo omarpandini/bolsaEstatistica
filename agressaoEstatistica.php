@@ -1,5 +1,7 @@
 <?php
 
+$vlOperacao = 0;
+
 if (isset($_POST['submit'])) {
 
     $dtOperacaoIni = $_POST['dtInicial'];
@@ -8,18 +10,17 @@ if (isset($_POST['submit'])) {
     $dsVariacao = $_POST['idVariacao'];
     $hrOperacao = $_POST['hrOperacao'];
     $idDebug = $_POST['idDebug'];
+    $nrContratos = $_POST['nrContratos'];
 
-    $nrPontos = substr($dsVariacao,0,strpos($dsVariacao,'P')) ;
+    $nrVariacao = substr($dsVariacao,0,strpos($dsVariacao,'P')) ;
 
-    echo 'pos '.$nrPontos ;
+    $tiks = $nmPapel=='WINFUT'?5:0.5;
+    $pontos = $nrVariacao * $tiks;
+    $vlOperacao = $nmPapel=='WINFUT'? ($pontos * $nrContratos * 0.2)  : ($pontos * $nrContratos * 10);
+   
 
 }
 
-
-
-
-
-//echo 'papel '. $_POST['nmPapel'];
 
 
 $conn = new PDO("mysql:dbname=bolsav;host=localhost", "root", "admin");
@@ -51,7 +52,7 @@ $filtro = array();
 
 array_push($filtro, array('titulo' => 'Barras Saldo 0 - 999', 'vl_minimo' => 0, 'vl_maximo' => 999));
    
-for ($i = 1; $i <= 15; $i++) {
+for ($i = 1; $i <= 1; $i++) {
     $vl_minimo = ($i * 1000);
     $vl_maximo = ($i * 1000) + 999;
     $titulo = 'Barras Saldo ' . $vl_minimo . ' - ' . $vl_maximo;
@@ -59,11 +60,9 @@ for ($i = 1; $i <= 15; $i++) {
 }
 
 
-//var_dump($filtro);
-//die();
-
 //Array que irá armazenar os resultados
 $resultado = array();
+$resultadoDiario = array();
 
 
 foreach ($filtro as $value) {
@@ -88,6 +87,7 @@ foreach ($filtro as $value) {
     $gatilho = '';
 
     foreach ($results as $sql) {
+        
 
         $debug = 'hora ' . $sql['hr_operacao'] . ' ' . $value['vl_minimo'] . ' - ' . $value['vl_maximo'];;
 
@@ -98,9 +98,12 @@ foreach ($filtro as $value) {
                 if ($sql['vl_fechamento'] > $sql['vl_abertura']) {
                     $debug .= ' GAIN ';
                     $contadorOperacoesCpGain++;
+                    array_push($resultadoDiario,array('intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'CP' ,'gain' => 1, 'loss' => 0 ));
+
                 } else {
                     $debug .= ' LOSS ';
-                    $contadorOperacoesCpLoss++;
+                    $contadorOperacoesCpLoss++;                    
+                    array_push($resultadoDiario,array('intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'CP' ,'gain' => 0, 'loss' => 1 ));
                 }
 
                 $gatilho = '';
@@ -111,9 +114,11 @@ foreach ($filtro as $value) {
                 if ($sql['vl_fechamento'] < $sql['vl_abertura']) {
                     $debug .= ' GAIN ';
                     $contadorOperacoesVdGain++;
+                    array_push($resultadoDiario,array('intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'VD' ,'gain' => 1, 'loss' => 0 ));
                 } else {
                     $debug .= ' LOSS ';
                     $contadorOperacoesVdLoss++;
+                    array_push($resultadoDiario,array('intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'VD' ,'gain' => 0, 'loss' => 1 ));
                 }
 
                 $gatilho = '';
@@ -197,6 +202,8 @@ foreach ($filtro as $value) {
     );
 }
 
+imprimeResultadoDiario($resultadoDiario);
+
 
 ?>
 
@@ -221,6 +228,13 @@ foreach ($filtro as $value) {
             padding: 10px;
             width: 50%;
         }
+        #tblResultadoDiario{
+           display: flex;
+           justify-content: center;
+          
+        }
+
+       
     </style>
 </head>
 
@@ -282,6 +296,13 @@ foreach ($filtro as $value) {
                           <input type="number" min="10" max="17" class="form-control" id="hrOperacao" name="hrOperacao" value="<?php echo empty($hrOperacao)? 10 : $hrOperacao; ?>">
                         </div>
                     </div>
+
+                    <div class="mb-3 row">
+                        <label for="nrContratos" class="col-sm-2 col-form-label">Contratos</label>
+                        <div class="col-sm-2">
+                          <input type="number" min="1"  class="form-control" id="nrContratos" name="nrContratos" value="<?php echo empty($nrContratos)? 1 : $nrContratos; ?>">
+                        </div>
+                    </div>
                     
                     <div class="mb-3 row">
                         <label for="idVariacao" class="col-sm-2 col-form-label">Debug?</label>
@@ -302,7 +323,7 @@ foreach ($filtro as $value) {
         <br><br>
 
         <?php
-        retornaCard($resultado);
+        retornaCard($resultado,$vlOperacao);
         ?>
 
 
@@ -314,7 +335,7 @@ foreach ($filtro as $value) {
 
 <?php
 
-function retornaCard($resultado)
+function retornaCard($resultado,$vlOperacao)
 {
 
     $i = 1;
@@ -358,8 +379,8 @@ function retornaCard($resultado)
                             <h4 style="color:red;">Total Saldo Neg <span class="badge bg-secondary">' . $value['total_barras_saldo_neg'] . '</span>  P -' . $value['total_barras_neg_saldo_pos'] . ' N - ' . $value['total_barras_neg_saldo_neg'] . '</h4>
                             <h4>Total Operações CP <span class="badge bg-secondary">' . $value['total_operacoes_cp'] . '</span> G - ' . $value['total_operacoes_cp_gain'] . ' | L -' . $value['total_operacoes_cp_loss'] . ' | Acerto:' . $percAcertoCp . '%</h4>                            
                             <h4>Total Operações VD <span class="badge bg-secondary">' . $value['total_operacoes_vd'] . '</span> G - ' . $value['total_operacoes_vd_gain'] . ' | L -' . $value['total_operacoes_vd_loss'] . ' | Acerto:' . $percAcertoVd . '%</h4>
-                            <h4>Resultado Operações <span class="badge bg-secondary">' . $resultado.' </h4>
-                            <h4>Resultado Inverso Operações <span class="badge bg-secondary">' . $resultadoInverso.' </h4>
+                            <h4>Resultado Operações <span class="badge bg-secondary">' . $resultado.' </span> R$ '. ($resultado * $vlOperacao )  .' </h4>
+                            <h4>Resultado Inverso Operações <span class="badge bg-secondary">' . $resultadoInverso.' </span> R$ '. ($resultadoInverso * $vlOperacao )  .' </h4>
                         </div>
                     </div>
                 </div>';
@@ -377,4 +398,99 @@ function retornaCard($resultado)
     $card .= '</div>';
     echo ($card);
 }
+
+function imprimeResultadoDiario($resultadoDiario){
+
+    $gain = 0;
+    $loss = 0;
+    $dadosCompilados = array(); 
+    $i = 1;
+    $auxdtOperacao = '';
+    $auxIntervalo = '';
+
+    foreach ($resultadoDiario as $key => $value) {
+
+        if ($i == 1) {
+            $auxdtOperacao = $value['dtOperacao'];
+            $auxIntervalo = $value['intervalo'];   
+        }
+
+        if ( ($auxdtOperacao != $value['dtOperacao']) || ($auxIntervalo != $value['intervalo']) ) {
+           // die($auxdtOperacao. ' '.$value['dtOperacao']);
+            array_push($dadosCompilados,array('intervalo' => $auxIntervalo, 'dtOperacao' => $auxdtOperacao,'Gain' => $gain,'Loss' => $loss));
+            $gain = 0;
+            $loss = 0;
+        }
+
+        $gain += $value['gain'];
+        $loss += $value['loss'];
+        $i++;
+        $auxdtOperacao = $value['dtOperacao'];
+        $auxIntervalo = $value['intervalo'];   
+    }
+    array_push($dadosCompilados,array('intervalo' => $auxIntervalo,'dtOperacao' => $auxdtOperacao,'Gain' => $gain,'Loss' => $loss));
+    echo '<br>Gain '.$gain;
+    echo '<br>Loss '.$loss;
+    echo '<br> Dados Compilados<br>';
+    
+    imprimetabela($dadosCompilados);
+}
+
+function imprimeTabela($array){
+
+    var_dump($array);
+    $i = 1;
+    $auxIntervalo = '';
+    $table = '<div id="tblResultadoDiario">';
+
+    foreach ($array as $key => $value) {
+        
+        if ($i == 1) {
+            $auxIntervalo = $value['intervalo'];
+          //  $table .= 
+        }
+
+        $auxIntervalo = $value['intervalo'];
+        echo '<br>'.$auxIntervalo;
+
+        $i++;
+    }
+
+    $table .= '<table style="width:50%" class="table table-striped ">
+    <thead>
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">First</th>
+      <th scope="col">Last</th>
+      <th scope="col">Handle</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">1</th>
+      <td>Mark</td>
+      <td>Otto</td>
+      <td>@mdo</td>
+    </tr>
+    <tr>
+      <th scope="row">2</th>
+      <td>Jacob</td>
+      <td>Thornton</td>
+      <td>@fat</td>
+    </tr>
+    <tr>
+      <th scope="row">3</th>
+      <td colspan="2">Larry the Bird</td>
+      <td>@twitter</td>
+    </tr>
+  </tbody>
+</table>
+            ';
+
+  $table .= '</div>';
+
+  echo $table;
+
+}
+
 ?>
