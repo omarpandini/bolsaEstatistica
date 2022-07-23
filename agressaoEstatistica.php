@@ -1,5 +1,6 @@
 <?php
 
+require_once('util.php');
 $vlOperacao = 0;
 
 if (isset($_POST['submit'])) {
@@ -52,7 +53,7 @@ $filtro = array();
 
 array_push($filtro, array('titulo' => 'Barras Saldo 0 - 999', 'vl_minimo' => 0, 'vl_maximo' => 999));
    
-for ($i = 1; $i <= 1; $i++) {
+for ($i = 1; $i <= 15; $i++) {
     $vl_minimo = ($i * 1000);
     $vl_maximo = ($i * 1000) + 999;
     $titulo = 'Barras Saldo ' . $vl_minimo . ' - ' . $vl_maximo;
@@ -202,7 +203,7 @@ foreach ($filtro as $value) {
     );
 }
 
-imprimeResultadoDiario($resultadoDiario);
+
 
 
 ?>
@@ -228,11 +229,7 @@ imprimeResultadoDiario($resultadoDiario);
             padding: 10px;
             width: 50%;
         }
-        #tblResultadoDiario{
-           display: flex;
-           justify-content: center;
-          
-        }
+       
 
        
     </style>
@@ -399,6 +396,8 @@ function retornaCard($resultado,$vlOperacao)
     echo ($card);
 }
 
+echo imprimeResultadoDiario($resultadoDiario);
+
 function imprimeResultadoDiario($resultadoDiario){
 
     $gain = 0;
@@ -429,68 +428,103 @@ function imprimeResultadoDiario($resultadoDiario){
         $auxIntervalo = $value['intervalo'];   
     }
     array_push($dadosCompilados,array('intervalo' => $auxIntervalo,'dtOperacao' => $auxdtOperacao,'Gain' => $gain,'Loss' => $loss));
-    echo '<br>Gain '.$gain;
-    echo '<br>Loss '.$loss;
-    echo '<br> Dados Compilados<br>';
+   
     
-    imprimetabela($dadosCompilados);
+    return imprimetabela($dadosCompilados);
 }
 
 function imprimeTabela($array){
 
-    var_dump($array);
     $i = 1;
     $auxIntervalo = '';
-    $table = '<div id="tblResultadoDiario">';
+    $html = '<div class="container">';
+
+    $operacoes = 0;
+    $operacoesTotal = 0;
+
+    $resultado = 0;
+    $resultadoTotal = 0;
+
+    $resultadoInverso = 0;
+    $resultadoInversoTotal = 0;
 
     foreach ($array as $key => $value) {
+
+        $operacoes = $value['Gain'] + $value['Loss'];
         
-        if ($i == 1) {
+
+        $resultado = $value['Gain'] - $value['Loss'];
+        $resultadoInverso = $value['Loss'] - $value['Gain'];
+
+        if ($i == 1 || $auxIntervalo <>  $value['intervalo'] ) {
+
+            if ($i > 1) {
+
+                $html .= '<tr>
+                    <th scope="row">Total</th>
+                    <th>'.$operacoesTotal.'</th>
+                    <th>'.$resultadoTotal.'</th>
+                    <th>'.$resultadoInversoTotal.'</th>
+                    </tr> ';
+
+                $html .= ' </tbody></table>';
+                $operacoesTotal = 0;
+                $resultadoTotal = 0;
+                $resultadoInversoTotal = 0;
+            }
+
             $auxIntervalo = $value['intervalo'];
-          //  $table .= 
+            $html .= '<div class="alert alert-primary" role="alert">'.$value['intervalo'].'</div>';
+
+            $html .= '<table class="table ">
+                        <thead>
+                        <tr>
+                            <th scope="col">Dt. Pregão</th>
+                            <th scope="col">Operações</th>
+                            <th scope="col">Resultado</th>
+                            <th scope="col">Resultado Inverso</th>
+                        </tr>
+                    </thead><tbody>';
         }
 
-        $auxIntervalo = $value['intervalo'];
-        echo '<br>'.$auxIntervalo;
+        $style1 = $resultado < 0 ? "background-color:#f26f6f;color:white":"background-color:#5ef7ad;";
+        $style2 = $resultadoInverso < 0 ? "background-color:#f26f6f;color:white":"background-color:#5ef7ad;";
+        if ($resultado < 0) {            
+           // $style = "background-color:#f26f6f;color:white";
+        }else{
+           // $style = "background-color:#5ef7ad;";
+        }
 
-        $i++;
-    }
-
-    $table .= '<table style="width:50%" class="table table-striped ">
-    <thead>
-    <tr>
-      <th scope="col">#</th>
-      <th scope="col">First</th>
-      <th scope="col">Last</th>
-      <th scope="col">Handle</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th scope="row">1</th>
-      <td>Mark</td>
-      <td>Otto</td>
-      <td>@mdo</td>
-    </tr>
-    <tr>
-      <th scope="row">2</th>
-      <td>Jacob</td>
-      <td>Thornton</td>
-      <td>@fat</td>
-    </tr>
-    <tr>
-      <th scope="row">3</th>
-      <td colspan="2">Larry the Bird</td>
-      <td>@twitter</td>
-    </tr>
-  </tbody>
-</table>
+        $html .= ' <tr>
+                    <td scope="row">'.retornaDataBr($value['dtOperacao']).'</td>
+                    <td>'.$operacoes.'</td>
+                    <td style="'. $style1.'">'.$resultado.'</td>
+                    <td style="'. $style2.'">'.$resultadoInverso.'</td>
+                    </tr> 
             ';
 
-  $table .= '</div>';
+        $auxIntervalo = $value['intervalo'];
 
-  echo $table;
+        $operacoesTotal += $operacoes;
+        $resultadoTotal += $resultado;
+        $resultadoInversoTotal += $resultadoInverso;
+        $i++;
+    }
+ 
+
+ $html .= '<tr>
+                <th scope="row">Total</th>
+                <th>'.$operacoesTotal.'</th>
+                <th>'.$resultadoTotal.'</th>
+                <th>'.$resultadoInversoTotal.'</th>
+                </tr> ';
+  $html .= ' </tbody></table>'; 
+  $html .= '</div>';
+
+  return $html;
 
 }
 
 ?>
+
+

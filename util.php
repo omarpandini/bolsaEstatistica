@@ -29,4 +29,17 @@ function retornaData($data)
 
     return $data;
 }
+
+
+function retornaDataBr($data)
+{
+    $dia = substr($data,8,2);
+    $mes = substr($data,5,2);
+    $ano = substr($data,0,4);
+
+    $data = $dia.'/'.$mes.'/'.$ano;
+
+    return $data;
+}
+
 ?>
