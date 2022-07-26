@@ -281,6 +281,7 @@ foreach ($filtro as $value) {
                                 <option <?php if($dsVariacao == '4P') { ?> selected <?php }; ?>  value="4P">4P</option>
                                 <option <?php if($dsVariacao == '5P') { ?> selected <?php }; ?> value="5P">5P</option>
                                 <option <?php if($dsVariacao == '6P') { ?> selected <?php }; ?> value="6P">6P</option>
+                                <option <?php if($dsVariacao == '8P') { ?> selected <?php }; ?> value="8P">8P</option>
                                 <option <?php if($dsVariacao == '10P') { ?> selected <?php }; ?> value="10P">10P</option>
                                 <option <?php if($dsVariacao == '12P') { ?> selected <?php }; ?> value="12P">12P</option>
                                 <option <?php if($dsVariacao == '15P') { ?> selected <?php }; ?> value="15P">15P</option>
