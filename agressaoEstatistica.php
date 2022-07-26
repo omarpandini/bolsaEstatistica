@@ -2,6 +2,8 @@
 
 require_once('util.php');
 $vlOperacao = 0;
+$nrContratos = 0;
+$nmPapel = '';
 
 if (isset($_POST['submit'])) {
 
@@ -18,7 +20,7 @@ if (isset($_POST['submit'])) {
     $tiks = $nmPapel=='WINFUT'?5:0.5;
     $pontos = $nrVariacao * $tiks;
     $vlOperacao = $nmPapel=='WINFUT'? ($pontos * $nrContratos * 0.2)  : ($pontos * $nrContratos * 10);
-   
+  
 
 }
 
@@ -396,9 +398,9 @@ function retornaCard($resultado,$vlOperacao)
     echo ($card);
 }
 
-echo imprimeResultadoDiario($resultadoDiario);
+echo imprimeResultadoDiario($resultadoDiario,$nmPapel,$nrContratos,$vlOperacao);
 
-function imprimeResultadoDiario($resultadoDiario){
+function imprimeResultadoDiario($resultadoDiario,$nmPapel,$nrContratos,$vlOperacao){
 
     $gain = 0;
     $loss = 0;
@@ -430,10 +432,10 @@ function imprimeResultadoDiario($resultadoDiario){
     array_push($dadosCompilados,array('intervalo' => $auxIntervalo,'dtOperacao' => $auxdtOperacao,'Gain' => $gain,'Loss' => $loss));
    
     
-    return imprimetabela($dadosCompilados);
+    return imprimetabela($dadosCompilados,$nmPapel,$nrContratos,$vlOperacao);
 }
 
-function imprimeTabela($array){
+function imprimeTabela($array,$nmPapel,$nrContratos,$vlOperacao){
 
     $i = 1;
     $auxIntervalo = '';
@@ -441,20 +443,27 @@ function imprimeTabela($array){
 
     $operacoes = 0;
     $operacoesTotal = 0;
+    $custosTotal = 0;
+    $custos = 0;
 
     $resultado = 0;
     $resultadoTotal = 0;
 
     $resultadoInverso = 0;
+    $resultadoLiquidoTotal = 0;
+
     $resultadoInversoTotal = 0;
+    $resultadoLiquidoInvTotal = 0;
 
     foreach ($array as $key => $value) {
 
         $operacoes = $value['Gain'] + $value['Loss'];
-        
-
+        $custos = retornaCustos($nmPapel,$operacoes,$nrContratos);  
         $resultado = $value['Gain'] - $value['Loss'];
         $resultadoInverso = $value['Loss'] - $value['Gain'];
+
+        $resultadoLiquido = ($vlOperacao * $resultado) - $custos;
+        $resultadoLiquidoInv = ($vlOperacao * $resultadoInverso) - $custos;
 
         if ($i == 1 || $auxIntervalo <>  $value['intervalo'] ) {
 
@@ -463,14 +472,20 @@ function imprimeTabela($array){
                 $html .= '<tr>
                     <th scope="row">Total</th>
                     <th>'.$operacoesTotal.'</th>
+                    <th>R$'.$custosTotal.'</th>
                     <th>'.$resultadoTotal.'</th>
+                    <th>R$'.$resultadoLiquidoTotal.'</th>
                     <th>'.$resultadoInversoTotal.'</th>
+                    <th>R$'.$resultadoLiquidoInvTotal.'</th>
                     </tr> ';
 
                 $html .= ' </tbody></table>';
                 $operacoesTotal = 0;
+                $custosTotal = 0;
                 $resultadoTotal = 0;
                 $resultadoInversoTotal = 0;
+                $resultadoLiquidoTotal = 0;
+                $resultadoLiquidoInvTotal = 0;
             }
 
             $auxIntervalo = $value['intervalo'];
@@ -481,14 +496,17 @@ function imprimeTabela($array){
                         <tr>
                             <th scope="col">Dt. Pregão</th>
                             <th scope="col">Operações</th>
+                            <th scope="col">Custo</th>
                             <th scope="col">Resultado</th>
+                            <th scope="col">R$ Líquido</th>
                             <th scope="col">Resultado Inverso</th>
+                            <th scope="col">R$ Líquido</th>
                         </tr>
                     </thead><tbody>';
         }
 
-        $style1 = $resultado < 0 ? "background-color:#f26f6f;color:white":"background-color:#5ef7ad;";
-        $style2 = $resultadoInverso < 0 ? "background-color:#f26f6f;color:white":"background-color:#5ef7ad;";
+        $style1 = $resultadoLiquido < 0 ? "background-color:#f26f6f;color:white":"background-color:#5ef7ad;";
+        $style2 = $resultadoLiquidoInv < 0 ? "background-color:#f26f6f;color:white":"background-color:#5ef7ad;";
         if ($resultado < 0) {            
            // $style = "background-color:#f26f6f;color:white";
         }else{
@@ -498,16 +516,22 @@ function imprimeTabela($array){
         $html .= ' <tr>
                     <td scope="row">'.retornaDataBr($value['dtOperacao']).'</td>
                     <td>'.$operacoes.'</td>
+                    <td>R$'.$custos.'</td>
                     <td style="'. $style1.'">'.$resultado.'</td>
+                    <td style="'. $style1.'">'.$resultadoLiquido.'</td>
                     <td style="'. $style2.'">'.$resultadoInverso.'</td>
+                    <td style="'. $style2.'">'.$resultadoLiquidoInv.'</td>
                     </tr> 
             ';
 
         $auxIntervalo = $value['intervalo'];
 
         $operacoesTotal += $operacoes;
+        $custosTotal += $custos;
         $resultadoTotal += $resultado;
         $resultadoInversoTotal += $resultadoInverso;
+        $resultadoLiquidoTotal += $resultadoLiquido;
+        $resultadoLiquidoInvTotal += $resultadoLiquidoInv;
         $i++;
     }
  
@@ -515,8 +539,11 @@ function imprimeTabela($array){
  $html .= '<tr>
                 <th scope="row">Total</th>
                 <th>'.$operacoesTotal.'</th>
+                <th>R$'.$custosTotal.'</th>
                 <th>'.$resultadoTotal.'</th>
+                <th>'.$resultadoLiquidoTotal.'</th>
                 <th>'.$resultadoInversoTotal.'</th>
+                <th>'.$resultadoLiquidoInvTotal.'</th>
                 </tr> ';
   $html .= ' </tbody></table>'; 
   $html .= '</div>';

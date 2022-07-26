@@ -1,4 +1,5 @@
 <?php
+
 function retornaValorInteiro($vlPreco)
 {
     $valor = $vlPreco;
@@ -40,6 +41,16 @@ function retornaDataBr($data)
     $data = $dia.'/'.$mes.'/'.$ano;
 
     return $data;
+}
+
+function retornaCustos($nmPapel,$qtOperacoes,$qtContratos){
+    $custoOperacao = 0;
+    $custoContrato = $nmPapel == 'WINFUT' ? 0.22 : 1 ;
+
+    $custoOperacao = $qtContratos * $qtOperacoes * $custoContrato * 2;
+
+    return $custoOperacao;
+
 }
 
 ?>

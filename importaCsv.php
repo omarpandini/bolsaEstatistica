@@ -6,6 +6,7 @@ $filename = "WDOFUT_6P.csv";
 $arquivos = array('WDOFUT_4P.csv'
                  ,'WDOFUT_5P.csv'
                  ,'WDOFUT_6P.csv'
+                 ,'WDOFUT_8P.csv'
                  ,'WINFUT_10P.csv'
                  ,'WINFUT_12P.csv'
                  ,'WINFUT_15P.csv'
