@@ -1,6 +1,6 @@
 <?php
-
 require_once('util.php');
+require_once('sql.php');
 $vlOperacao = 0;
 $nrContratos = 0;
 $nmPapel = '';
@@ -24,9 +24,9 @@ if (isset($_POST['submit'])) {
 
 }
 
+$sql = new Sql();
 
-
-$conn = new PDO("mysql:dbname=bolsav;host=localhost", "root", "admin");
+$conn = $sql->retornaPdo();
 
 $stmt = $conn->prepare("
 select *
