@@ -1,7 +1,8 @@
 <?php
 require_once('util.php');
 require_once('sql.php');
-$vlOperacao = 0;
+$vlOperacaoGain = 0;
+$vlOperacaoLoss = 0;
 $nrContratos = 0;
 $nmPapel = '';
 $dsVariacao = '';
@@ -25,12 +26,25 @@ if (isset($_POST['submit'])) {
     $nrContratos = $_POST['nrContratos'];
 
     $nrVariacao = substr($dsVariacao,0,strpos($dsVariacao,'P')) ;
-
+    
+    $renko = 'N';
+    
+    if(empty($nrVariacao)){
+        $nrVariacao = substr($dsVariacao,0,strpos($dsVariacao,'R')) ;
+        $renko = 'S';
+    }
+   
+    
     $tiks = $nmPapel=='WINFUT'?5:0.5;
     $pontos = $nrVariacao * $tiks;
-    $vlOperacao = $nmPapel=='WINFUT'? ($pontos * $nrContratos * 0.2)  : ($pontos * $nrContratos * 10);
-  
 
+    if($renko == 'N'){
+      $vlOperacaoGain = $nmPapel=='WINFUT'? ($pontos * $nrContratos * 0.2)  : ($pontos * $nrContratos * 10);
+      $vlOperacaoLoss = $nmPapel=='WINFUT'? ($pontos * $nrContratos * 0.2)  : ($pontos * $nrContratos * 10);
+    }else{
+      $vlOperacaoGain = $nmPapel=='WINFUT'? ($pontos * $nrContratos * 0.2)  : ($pontos * $nrContratos * 10);
+      $vlOperacaoLoss = $nmPapel=='WINFUT'? (($pontos * 2) * $nrContratos * 0.2)  : ($pontos * $nrContratos * 10);
+    }
 }
 
 $sql = new Sql();
@@ -326,7 +340,7 @@ foreach ($filtro as $value) {
         <br><br>
 
         <?php
-        retornaCard($resultado,$vlOperacao);
+        retornaCard($resultado,$vlOperacaoGain,$vlOperacaoLoss);
         ?>
 
 
@@ -338,7 +352,7 @@ foreach ($filtro as $value) {
 
 <?php
 
-function retornaCard($resultado,$vlOperacao)
+function retornaCard($resultado,$vlOperacaoGain,$vlOperacaoLoss)
 {
 
     $i = 1;
@@ -367,6 +381,17 @@ function retornaCard($resultado,$vlOperacao)
         $percAcertoVd = round($percAcertoVd, 2);
 
         $resultado = ( $value['total_operacoes_cp_gain'] -  $value['total_operacoes_cp_loss']) + ($value['total_operacoes_vd_gain']  - $value['total_operacoes_vd_loss']);
+
+        $resultadoFinanPos = ($value['total_operacoes_cp_gain'] + $value['total_operacoes_vd_gain']) * $vlOperacaoGain;
+        $resultadoFinanNeg = ($value['total_operacoes_cp_loss'] + $value['total_operacoes_vd_loss']) * $vlOperacaoLoss;
+
+        
+        $resultadoFinanPosInv = ($value['total_operacoes_cp_loss'] + $value['total_operacoes_vd_loss']) * $vlOperacaoLoss;
+        $resultadoFinanNegInv = ($value['total_operacoes_cp_gain'] + $value['total_operacoes_vd_gain']) * $vlOperacaoGain;
+
+        $resultadoFinanTotal = $resultadoFinanPos - $resultadoFinanNeg;
+        $resultadoFinanTotalInverso = $resultadoFinanPosInv -$resultadoFinanNegInv ;
+
         $resultadoInverso = ( $value['total_operacoes_cp_loss'] -  $value['total_operacoes_cp_gain']) + ($value['total_operacoes_vd_loss']  - $value['total_operacoes_vd_gain']);
 
 
@@ -382,8 +407,8 @@ function retornaCard($resultado,$vlOperacao)
                             <h4 style="color:red;">Total Saldo Neg <span class="badge bg-secondary">' . $value['total_barras_saldo_neg'] . '</span>  P -' . $value['total_barras_neg_saldo_pos'] . ' N - ' . $value['total_barras_neg_saldo_neg'] . '</h4>
                             <h4>Total Operações CP <span class="badge bg-secondary">' . $value['total_operacoes_cp'] . '</span> G - ' . $value['total_operacoes_cp_gain'] . ' | L -' . $value['total_operacoes_cp_loss'] . ' | Acerto:' . $percAcertoCp . '%</h4>                            
                             <h4>Total Operações VD <span class="badge bg-secondary">' . $value['total_operacoes_vd'] . '</span> G - ' . $value['total_operacoes_vd_gain'] . ' | L -' . $value['total_operacoes_vd_loss'] . ' | Acerto:' . $percAcertoVd . '%</h4>
-                            <h4>Resultado Operações <span class="badge bg-secondary">' . $resultado.' </span> R$ '. ($resultado * $vlOperacao )  .' </h4>
-                            <h4>Resultado Inverso Operações <span class="badge bg-secondary">' . $resultadoInverso.' </span> R$ '. ($resultadoInverso * $vlOperacao )  .' </h4>
+                            <h4>Resultado Operações <span class="badge bg-secondary">' . $resultado.' </span> R$ '. $resultadoFinanTotal  .' </h4>
+                            <h4>Resultado Inverso Operações <span class="badge bg-secondary">' . $resultadoInverso.' </span> R$ '. $resultadoFinanTotalInverso  .' </h4>
                         </div>
                     </div>
                 </div>';
@@ -402,9 +427,9 @@ function retornaCard($resultado,$vlOperacao)
     echo ($card);
 }
 
-echo imprimeResultadoDiario($resultadoDiario,$nmPapel,$nrContratos,$vlOperacao);
+echo imprimeResultadoDiario($resultadoDiario,$nmPapel,$nrContratos,$vlOperacaoGain ,$vlOperacaoLoss );
 
-function imprimeResultadoDiario($resultadoDiario,$nmPapel,$nrContratos,$vlOperacao){
+function imprimeResultadoDiario($resultadoDiario,$nmPapel,$nrContratos,$vlOperacaoGain ,$vlOperacaoLoss ){
 
     $gain = 0;
     $loss = 0;
@@ -436,10 +461,10 @@ function imprimeResultadoDiario($resultadoDiario,$nmPapel,$nrContratos,$vlOperac
     array_push($dadosCompilados,array('intervalo' => $auxIntervalo,'dtOperacao' => $auxdtOperacao,'Gain' => $gain,'Loss' => $loss));
    
     
-    return imprimetabela($dadosCompilados,$nmPapel,$nrContratos,$vlOperacao);
+    return imprimetabela($dadosCompilados,$nmPapel,$nrContratos,$vlOperacaoGain ,$vlOperacaoLoss);
 }
 
-function imprimeTabela($array,$nmPapel,$nrContratos,$vlOperacao){
+function imprimeTabela($array,$nmPapel,$nrContratos,$vlOperacaoGain ,$vlOperacaoLoss){
 
     $i = 1;
     $auxIntervalo = '';
@@ -463,11 +488,21 @@ function imprimeTabela($array,$nmPapel,$nrContratos,$vlOperacao){
 
         $operacoes = $value['Gain'] + $value['Loss'];
         $custos = retornaCustos($nmPapel,$operacoes,$nrContratos);  
+
+        $resultadoFinanPos = $value['Gain'] * $vlOperacaoGain;
+        $resultadoFinanNeg = $value['Loss'] * $vlOperacaoLoss;
+
+        $resultadoFinanPosInv = $value['Loss'] * $vlOperacaoLoss;
+        $resultadoFinanNegInv = $value['Gain'] * $vlOperacaoGain;
+
+        $resultadoFinanTotal = $resultadoFinanPos - $resultadoFinanNeg;
+        $resultadoFinanTotalInv = $resultadoFinanPosInv - $resultadoFinanNegInv;
+
         $resultado = $value['Gain'] - $value['Loss'];
         $resultadoInverso = $value['Loss'] - $value['Gain'];
 
-        $resultadoLiquido = ($vlOperacao * $resultado) - $custos;
-        $resultadoLiquidoInv = ($vlOperacao * $resultadoInverso) - $custos;
+        $resultadoLiquido = ($resultadoFinanTotal) - $custos;
+        $resultadoLiquidoInv = ($resultadoFinanTotalInv) - $custos;
 
         if ($i == 1 || $auxIntervalo <>  $value['intervalo'] ) {
 
