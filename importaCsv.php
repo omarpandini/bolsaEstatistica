@@ -11,6 +11,11 @@ $arquivos = array('WDOFUT_4P.csv'
                  ,'WINFUT_12P.csv'
                  ,'WINFUT_15P.csv'
                  ,'WINFUT_20P.csv'
+                 ,'WINFUT_14P.csv'
+                 ,'WINFUT_16P.csv'
+                 ,'WINFUT_18P.csv'
+                 ,'WINFUT_22P.csv'
+                 ,'WINFUT_24P.csv'
                 );
 
 foreach ($arquivos as $key => $arquivo) {

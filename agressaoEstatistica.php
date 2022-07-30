@@ -4,13 +4,22 @@ require_once('sql.php');
 $vlOperacao = 0;
 $nrContratos = 0;
 $nmPapel = '';
+$dsVariacao = '';
+$dtOperacaoIni = '';
+$dtOperacaoFim = '';
+$hrOperacao = '';
+
+$listaPapeisVariacao = retornaPapelVariacao();
 
 if (isset($_POST['submit'])) {
 
     $dtOperacaoIni = $_POST['dtInicial'];
     $dtOperacaoFim = $_POST['dtFinal'];
-    $nmPapel = $_POST['nmPapel'];
-    $dsVariacao = $_POST['idVariacao'];
+    $idPapelVariacao = $_POST['idPapelVariacao'];
+
+    $nmPapel    =  retornaPapel($idPapelVariacao);
+    $dsVariacao =  retornaVariacao($idPapelVariacao);
+
     $hrOperacao = $_POST['hrOperacao'];
     $idDebug = $_POST['idDebug'];
     $nrContratos = $_POST['nrContratos'];
@@ -38,6 +47,7 @@ where tbl.dt_operacao between :dt_operacao_ini and :dt_operacao_fim
   and to_number(substr(tbl.hr_operacao,1,2)) < :hr_operacao
 order by tbl.id_reg desc
 ");
+
 
 $stmt->bindParam(":dt_operacao_ini", $dtOperacaoIni);
 $stmt->bindParam(":dt_operacao_fim", $dtOperacaoFim);
@@ -265,33 +275,26 @@ foreach ($filtro as $value) {
                     </div>
 
                     <div class="mb-3 row">
-                        <label for="nmPapel" class="col-sm-2 col-form-label">Papel</label>
+                        <label for="idPapelVariacao" class="col-sm-2 col-form-label">Papel / Variação</label>
                         <div class="col-sm-2">
-                            <select class="form-select" aria-label="Default select example" id="nmPapel" name="nmPapel">
-                                <option <?php if($nmPapel == 'WINFUT') { ?> selected <?php }; ?>  value="WINFUT">Mini Índice</option>
-                                <option <?php if($nmPapel == 'WDOFUT') { ?> selected <?php }; ?>  value="WDOFUT">Mini Dólar</option>
+                            <select class="form-select" aria-label="Default select example" id="idPapelVariacao" name="idPapelVariacao">
+                                <?php
+                                foreach ($listaPapeisVariacao as $key => $papel) {   
+
+                                    $select = '' ;                               
+
+                                    if ($papel['papel'] == $_POST['idPapelVariacao']) {
+                                        $select = 'selected' ;                               
+                                    }
+                                    echo '<option '.$select.' value="'.$papel['papel'].'">'.$papel['papel'].'</option>';
+                                }
+                                ?>
                             </select>
                         </div>
                     </div>
 
                     <div class="mb-3 row">
-                        <label for="idVariacao" class="col-sm-2 col-form-label">Variação</label>
-                        <div class="col-sm-2">
-                            <select class="form-select" aria-label="Default select example" id="idVariacao" name="idVariacao">
-                                <option <?php if($dsVariacao == '4P') { ?> selected <?php }; ?>  value="4P">4P</option>
-                                <option <?php if($dsVariacao == '5P') { ?> selected <?php }; ?> value="5P">5P</option>
-                                <option <?php if($dsVariacao == '6P') { ?> selected <?php }; ?> value="6P">6P</option>
-                                <option <?php if($dsVariacao == '8P') { ?> selected <?php }; ?> value="8P">8P</option>
-                                <option <?php if($dsVariacao == '10P') { ?> selected <?php }; ?> value="10P">10P</option>
-                                <option <?php if($dsVariacao == '12P') { ?> selected <?php }; ?> value="12P">12P</option>
-                                <option <?php if($dsVariacao == '15P') { ?> selected <?php }; ?> value="15P">15P</option>
-                                <option <?php if($dsVariacao == '20P') { ?> selected <?php }; ?> value="20P">20P</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="mb-3 row">
-                        <label for="idVariacao" class="col-sm-2 col-form-label">Max Horário</label>
+                        <label for="hrOperacao" class="col-sm-2 col-form-label">Max Horário</label>
                         <div class="col-sm-2">
                           <input type="number" min="10" max="17" class="form-control" id="hrOperacao" name="hrOperacao" value="<?php echo empty($hrOperacao)? 10 : $hrOperacao; ?>">
                         </div>
@@ -305,7 +308,7 @@ foreach ($filtro as $value) {
                     </div>
                     
                     <div class="mb-3 row">
-                        <label for="idVariacao" class="col-sm-2 col-form-label">Debug?</label>
+                        <label for="idDebug" class="col-sm-2 col-form-label">Debug?</label>
                         <div class="col-sm-2">
                             <select class="form-select" aria-label="Default select example" id="idDebug" name="idDebug">
                                 <option selected value="N">Não</option>
