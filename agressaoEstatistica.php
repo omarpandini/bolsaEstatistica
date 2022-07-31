@@ -59,7 +59,7 @@ where tbl.dt_operacao between :dt_operacao_ini and :dt_operacao_fim
   and tbl.nm_papel = :nm_papel
   and tbl.ds_variacao = :ds_variacao
   and to_number(substr(tbl.hr_operacao,1,2)) < :hr_operacao
-order by tbl.id_reg desc
+order by tbl.dt_operacao desc, tbl.id_reg desc
 ");
 
 

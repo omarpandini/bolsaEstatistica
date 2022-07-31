@@ -1,8 +1,6 @@
 <?php
 require_once('util.php');
 
-$filename = "WDOFUT_6P.csv";
-
 $arquivos = array('WDOFUT_4P.csv'
                  ,'WDOFUT_5P.csv'
                  ,'WDOFUT_6P.csv'
