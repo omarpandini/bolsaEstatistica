@@ -11,10 +11,8 @@ $dtOperacaoFim = '';
 $hrOperacao = '';
 
 $listaPapeisVariacao = retornaPapelVariacao();
-$idSubmit = 'N';
 
 if (isset($_POST['submit'])) {
-    $idSubmit = 'S';
 
     $dtOperacaoIni = $_POST['dtInicial'];
     $dtOperacaoFim = $_POST['dtFinal'];
@@ -49,50 +47,6 @@ if (isset($_POST['submit'])) {
     }
 }
 
-function retornaValorOperacao($tpOperacao,$dsVariacao,$nmPapel,$nrContratos){
-
-    $pontos = 0;
-    $tiks = 0;
-    $renko = 'N';
-    $vlOperacao = 0;
-
-    $nrVariacao = substr($dsVariacao,0,strpos($dsVariacao,'P')) ;
-    
-    if(empty($nrVariacao)){
-        $nrVariacao = substr($dsVariacao,0,strpos($dsVariacao,'R')) ;
-        $renko = 'S';
-    }
-    
-    $tiks = $nmPapel=='WINFUT'?5:0.5;
-    $pontos = $nrVariacao * $tiks;
-
-    switch ($tpOperacao) {
-        case 'GAIN':
-
-            if($renko == 'N'){
-                $vlOperacao = $nmPapel=='WINFUT'? ($pontos * $nrContratos * 0.2)  : ($pontos * $nrContratos * 10);
-              }else{
-                $vlOperacao = $nmPapel=='WINFUT'? ($pontos * $nrContratos * 0.2)  : ($pontos * $nrContratos * 10);
-              }
-
-            break;
-        case 'LOSS':            
-            if($renko == 'N'){
-                $vlOperacao = $nmPapel=='WINFUT'? ($pontos * $nrContratos * 0.2)  : ($pontos * $nrContratos * 10);
-            }else{
-                $vlOperacao = $nmPapel=='WINFUT'? (($pontos * 2) * $nrContratos * 0.2)  : ($pontos * $nrContratos * 10);
-            }
-            break;
-        
-        default:
-            # code...
-            break;
-    }
-
-    return $vlOperacao;
-
-}
-
 $sql = new Sql();
 
 $conn = $sql->retornaPdo();
@@ -105,7 +59,7 @@ where tbl.dt_operacao between :dt_operacao_ini and :dt_operacao_fim
   and tbl.nm_papel = :nm_papel
   and tbl.ds_variacao = :ds_variacao
   and to_number(substr(tbl.hr_operacao,1,2)) < :hr_operacao
-  order by tbl.dt_operacao desc, tbl.ds_variacao, tbl.id_reg desc
+order by tbl.dt_operacao desc, tbl.id_reg desc
 ");
 
 
@@ -123,12 +77,24 @@ $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 //Array que irá armazenar os filtros de mínima e máxima e o título do card
 $filtro = array();
 
-array_push($filtro, array('titulo' => 'Barras Saldo 0 - 999', 'vl_minimo' => 0, 'vl_maximo' => 999));
+$faixa = 500;
+$repeticoes = 80;
    
-for ($i = 1; $i <= 15; $i++) {
-    $vl_minimo = ($i * 1000);
-    $vl_maximo = ($i * 1000) + 999;
-    $titulo = 'Barras Saldo ' . $vl_minimo . ' - ' . $vl_maximo;
+for ($i = 0; $i <= $repeticoes; $i++) {
+
+    if ($i == 0) {
+        # code...
+        $vl_minimo = 0;
+        $vl_maximo = ($faixa - 1);
+        $titulo = 'Barras Saldo ' . $vl_minimo . ' - ' . $vl_maximo;
+    } else {
+        # code...
+        $vl_minimo = ($i * $faixa);
+        $vl_maximo = ($i * $faixa) + ($faixa - 1);
+        $titulo = 'Barras Saldo ' . $vl_minimo . ' - ' . $vl_maximo;
+    }
+    
+
     array_push($filtro, array('titulo' => $titulo, 'vl_minimo' => $vl_minimo, 'vl_maximo' => $vl_maximo));
 }
 
@@ -136,8 +102,6 @@ for ($i = 1; $i <= 15; $i++) {
 //Array que irá armazenar os resultados
 $resultado = array();
 $resultadoDiario = array();
-$auxVariacao = '';
-$i = 1;
 
 
 foreach ($filtro as $value) {
@@ -162,17 +126,9 @@ foreach ($filtro as $value) {
     $gatilho = '';
 
     foreach ($results as $sql) {
-
-        if ($i == 1) {
-            $auxVariacao = $sql['ds_variacao'];
-        };
-
-        if ($auxVariacao != $sql['ds_variacao']) {
-            $gatilho = '';
-        }
         
 
-        $debug =  'Variação ' .$sql['ds_variacao']. ' hora ' . $sql['hr_operacao'] . ' ' . $value['vl_minimo'] . ' - ' . $value['vl_maximo'];
+        $debug = 'hora ' . $sql['hr_operacao'] . ' ' . $value['vl_minimo'] . ' - ' . $value['vl_maximo'];;
 
         //Gatilho de operação foi ativado CP = Compra  VD = Venda
         switch ($gatilho) {
@@ -181,12 +137,12 @@ foreach ($filtro as $value) {
                 if ($sql['vl_fechamento'] > $sql['vl_abertura']) {
                     $debug .= ' GAIN ';
                     $contadorOperacoesCpGain++;
-                    array_push($resultadoDiario,array('nmPapel' => $sql['nm_papel'] , 'dsVariacao' =>$sql['ds_variacao'] ,'intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'CP' ,'gain' => 1, 'loss' => 0 ));
+                    array_push($resultadoDiario,array('intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'CP' ,'gain' => 1, 'loss' => 0 ));
 
                 } else {
                     $debug .= ' LOSS ';
                     $contadorOperacoesCpLoss++;                    
-                    array_push($resultadoDiario,array('nmPapel' => $sql['nm_papel'] ,'dsVariacao' =>$sql['ds_variacao'] ,'intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'CP' ,'gain' => 0, 'loss' => 1 ));
+                    array_push($resultadoDiario,array('intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'CP' ,'gain' => 0, 'loss' => 1 ));
                 }
 
                 $gatilho = '';
@@ -197,11 +153,11 @@ foreach ($filtro as $value) {
                 if ($sql['vl_fechamento'] < $sql['vl_abertura']) {
                     $debug .= ' GAIN ';
                     $contadorOperacoesVdGain++;
-                    array_push($resultadoDiario,array('nmPapel' => $sql['nm_papel'] ,'dsVariacao' =>$sql['ds_variacao'] ,'intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'VD' ,'gain' => 1, 'loss' => 0 ));
+                    array_push($resultadoDiario,array('intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'VD' ,'gain' => 1, 'loss' => 0 ));
                 } else {
                     $debug .= ' LOSS ';
                     $contadorOperacoesVdLoss++;
-                    array_push($resultadoDiario,array('nmPapel' => $sql['nm_papel'] ,'dsVariacao' =>$sql['ds_variacao'] ,'intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'VD' ,'gain' => 0, 'loss' => 1 ));
+                    array_push($resultadoDiario,array('intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'VD' ,'gain' => 0, 'loss' => 1 ));
                 }
 
                 $gatilho = '';
@@ -259,11 +215,7 @@ foreach ($filtro as $value) {
         if ($idDebug == 'S') {
             echo $debug . '<br>';
         }
-
-        $auxVariacao = $sql['ds_variacao'];
-        $i++;
     }
-
 
     array_push(
         $resultado,
@@ -288,6 +240,8 @@ foreach ($filtro as $value) {
 
     );
 }
+
+
 
 
 ?>
@@ -398,7 +352,7 @@ foreach ($filtro as $value) {
         <br><br>
 
         <?php
-       // retornaCard($resultado,$vlOperacaoGain,$vlOperacaoLoss);
+        retornaCard($resultado,$vlOperacaoGain,$vlOperacaoLoss);
         ?>
 
 
@@ -485,21 +439,15 @@ function retornaCard($resultado,$vlOperacaoGain,$vlOperacaoLoss)
     echo ($card);
 }
 
+echo imprimeResultadoDiario($resultadoDiario,$nmPapel,$nrContratos,$vlOperacaoGain ,$vlOperacaoLoss );
 
-
-
-echo imprimeResultadoDiario($resultadoDiario,$nmPapel,$nrContratos,$vlOperacaoGain ,$vlOperacaoLoss,$idSubmit );
-
-function imprimeResultadoDiario($resultadoDiario,$nmPapel,$nrContratos,$vlOperacaoGain ,$vlOperacaoLoss,$idSubmit ){
-
-   
+function imprimeResultadoDiario($resultadoDiario,$nmPapel,$nrContratos,$vlOperacaoGain ,$vlOperacaoLoss ){
 
     $gain = 0;
     $loss = 0;
     $dadosCompilados = array(); 
     $i = 1;
     $auxdtOperacao = '';
-    $dsVariacao = '';
     $auxIntervalo = '';
 
     foreach ($resultadoDiario as $key => $value) {
@@ -507,12 +455,11 @@ function imprimeResultadoDiario($resultadoDiario,$nmPapel,$nrContratos,$vlOperac
         if ($i == 1) {
             $auxdtOperacao = $value['dtOperacao'];
             $auxIntervalo = $value['intervalo'];   
-            $dsVariacao = $value['dsVariacao']; 
         }
 
-        if ( ($auxdtOperacao != $value['dtOperacao']) || ($auxIntervalo != $value['intervalo']) || ($dsVariacao != $value['dsVariacao'])  ) {
-          
-            array_push($dadosCompilados,array('nmPapel' => $value['nmPapel'] , 'dsVariacao' => $dsVariacao,'intervalo' => $auxIntervalo, 'dtOperacao' => $auxdtOperacao,'Gain' => $gain,'Loss' => $loss));
+        if ( ($auxdtOperacao != $value['dtOperacao']) || ($auxIntervalo != $value['intervalo']) ) {
+           // die($auxdtOperacao. ' '.$value['dtOperacao']);
+            array_push($dadosCompilados,array('intervalo' => $auxIntervalo, 'dtOperacao' => $auxdtOperacao,'Gain' => $gain,'Loss' => $loss));
             $gain = 0;
             $loss = 0;
         }
@@ -522,20 +469,14 @@ function imprimeResultadoDiario($resultadoDiario,$nmPapel,$nrContratos,$vlOperac
         $i++;
         $auxdtOperacao = $value['dtOperacao'];
         $auxIntervalo = $value['intervalo'];   
-        $dsVariacao = $value['dsVariacao'];   
     }
-
+    array_push($dadosCompilados,array('intervalo' => $auxIntervalo,'dtOperacao' => $auxdtOperacao,'Gain' => $gain,'Loss' => $loss));
+   
     
-    if($idSubmit == 'S'){
-        array_push($dadosCompilados,array('nmPapel' => $value['nmPapel'] ,'dsVariacao' => $dsVariacao,'intervalo' => $auxIntervalo,'dtOperacao' => $auxdtOperacao,'Gain' => $gain,'Loss' => $loss));
-    }
-
-    
-    return imprimetabela($dadosCompilados,$nmPapel,$nrContratos);
+    return imprimetabela($dadosCompilados,$nmPapel,$nrContratos,$vlOperacaoGain ,$vlOperacaoLoss);
 }
 
-function imprimeTabela($array,$nmPapel,$nrContratos){
-
+function imprimeTabela($array,$nmPapel,$nrContratos,$vlOperacaoGain ,$vlOperacaoLoss){
 
     $i = 1;
     $auxIntervalo = '';
@@ -555,14 +496,8 @@ function imprimeTabela($array,$nmPapel,$nrContratos){
     $resultadoInversoTotal = 0;
     $resultadoLiquidoInvTotal = 0;
 
-
     foreach ($array as $key => $value) {
-        
-        $vlOperacaoGain = retornaValorOperacao('GAIN',$value['dsVariacao'],$value['nmPapel'],$nrContratos);
-        $vlOperacaoLoss = retornaValorOperacao('LOSS',$value['dsVariacao'],$value['nmPapel'],$nrContratos);
 
-        $intervalo = $value['intervalo'];
-        $dsVariacao = $value['dsVariacao'];
         $operacoes = $value['Gain'] + $value['Loss'];
         $custos = retornaCustos($nmPapel,$operacoes,$nrContratos);  
 
@@ -581,7 +516,7 @@ function imprimeTabela($array,$nmPapel,$nrContratos){
         $resultadoLiquido = ($resultadoFinanTotal) - $custos;
         $resultadoLiquidoInv = ($resultadoFinanTotalInv) - $custos;
 
-        if ($i == 1 ) {
+        if ($i == 1 || $auxIntervalo <>  $value['intervalo'] ) {
 
             if ($i > 1) {
 
@@ -605,13 +540,11 @@ function imprimeTabela($array,$nmPapel,$nrContratos){
             }
 
             $auxIntervalo = $value['intervalo'];
-           // $html .= '<div class="alert alert-primary" role="alert">'.$value['intervalo'].'</div>';
+            $html .= '<div class="alert alert-primary" role="alert">'.$value['intervalo'].'</div>';
 
             $html .= '<table class="table ">
                         <thead>
                         <tr>
-                            <th scope="col">Variação</th>
-                            <th scope="col">Intervalo</th>
                             <th scope="col">Dt. Pregão</th>
                             <th scope="col">Operações</th>
                             <th scope="col">Custo</th>
@@ -632,8 +565,6 @@ function imprimeTabela($array,$nmPapel,$nrContratos){
         }
 
         $html .= ' <tr>
-                    <td>'.$dsVariacao.'</td>
-                    <td>'.$intervalo.'</td>
                     <td scope="row">'.retornaDataBr($value['dtOperacao']).'</td>
                     <td>'.$operacoes.'</td>
                     <td>'.str_replace('.',',',$custos).'</td>
@@ -656,6 +587,15 @@ function imprimeTabela($array,$nmPapel,$nrContratos){
     }
  
 
+ $html .= '<tr>
+                <th scope="row">Total</th>
+                <th>'.$operacoesTotal.'</th>
+                <th>R$'.$custosTotal.'</th>
+                <th>'.$resultadoTotal.'</th>
+                <th>'.$resultadoLiquidoTotal.'</th>
+                <th>'.$resultadoInversoTotal.'</th>
+                <th>'.$resultadoLiquidoInvTotal.'</th>
+                </tr> ';
   $html .= ' </tbody></table>'; 
   $html .= '</div>';
 
