@@ -14,7 +14,7 @@
 		}
 
         public function retornaPdo(){
-            return new PDO("mysql:dbname=bolsav;host=localhost","root","admin");
+            return new PDO("mysql:dbname=bolsav;host=localhost","root","");
         }
                 
                
