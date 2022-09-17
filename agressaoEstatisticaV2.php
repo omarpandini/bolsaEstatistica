@@ -9,6 +9,10 @@ $dsVariacao = '';
 $dtOperacaoIni = '';
 $dtOperacaoFim = '';
 $hrOperacao = '';
+$nrIntervalo = 0;
+$minPercentual = 0;
+$minOperacoes = 0;
+$idCompraVenda = 'T';
 
 $listaPapeisVariacao = retornaPapelVariacao();
 
@@ -22,6 +26,10 @@ if (isset($_POST['submit'])) {
     $dsVariacao =  retornaVariacao($idPapelVariacao);
 
     $hrOperacao = $_POST['hrOperacao'];
+    $nrIntervalo = $_POST['nrIntervalo'];
+    $minPercentual = $_POST['minPercentual'];
+    $minOperacoes = $_POST['minOperacoes'];
+    $idCompraVenda = $_POST['idCompraVenda'];
     $idDebug = $_POST['idDebug'];
     $nrContratos = $_POST['nrContratos'];
 
@@ -77,7 +85,7 @@ $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 //Array que irá armazenar os filtros de mínima e máxima e o título do card
 $filtro = array();
 
-$faixa = 500;
+$faixa = $nrIntervalo;
 $repeticoes = 80;
    
 for ($i = 0; $i <= $repeticoes; $i++) {
@@ -133,19 +141,20 @@ foreach ($filtro as $value) {
         //Gatilho de operação foi ativado CP = Compra  VD = Venda
         switch ($gatilho) {
             case 'CP':  // Compra
+                
+                    if ($sql['vl_fechamento'] > $sql['vl_abertura']) {
+                            $debug .= ' GAIN ';
+                            $contadorOperacoesCpGain++;
+                            array_push($resultadoDiario,array('intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'CP' ,'gain' => 1, 'loss' => 0 ));
+    
+                    } else {
+                        $debug .= ' LOSS ';
+                        $contadorOperacoesCpLoss++;                    
+                        array_push($resultadoDiario,array('intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'CP' ,'gain' => 0, 'loss' => 1 ));
+                    }
+    
+                    $gatilho = '';
 
-                if ($sql['vl_fechamento'] > $sql['vl_abertura']) {
-                    $debug .= ' GAIN ';
-                    $contadorOperacoesCpGain++;
-                    array_push($resultadoDiario,array('intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'CP' ,'gain' => 1, 'loss' => 0 ));
-
-                } else {
-                    $debug .= ' LOSS ';
-                    $contadorOperacoesCpLoss++;                    
-                    array_push($resultadoDiario,array('intervalo' =>  $value['titulo'], 'dtOperacao' => $sql['dt_operacao'] ,'operacao' =>'CP' ,'gain' => 0, 'loss' => 1 ));
-                }
-
-                $gatilho = '';
 
                 break;
             case 'VD':  // Venda
@@ -177,38 +186,48 @@ foreach ($filtro as $value) {
 
                 $debug .= ' saldo pos <strong>' . $sql['vl_saldo'] . '</strong>';
 
-                if ($sql['vl_fechamento'] > $sql['vl_abertura']) {
-                    $contadorBarrasPosSaldoPos++;
-                    $debug .= ' barra pos';
-
-                    if (empty($gatilho)) {
-                        $gatilho = 'CP';
-                        $debug .= '<span style="background-color:#31d65d;"><strong> GATILHO ' . $gatilho . '</strong></span>';
-                        $contadorOperacoesCp++;
+                if ($idCompraVenda == 'C' || $idCompraVenda == 'T') {
+                    if ($sql['vl_fechamento'] > $sql['vl_abertura']   ) {
+                        $contadorBarrasPosSaldoPos++;
+                        $debug .= ' barra pos';
+    
+                        if (empty($gatilho) ) {
+                            $gatilho = 'CP';
+                            $debug .= '<span style="background-color:#31d65d;"><strong> GATILHO ' . $gatilho . '</strong></span>';
+                            $contadorOperacoesCp++;
+                        }
+                    } else {
+                        $contadorBarrasPosSaldoNeg++;
+                        $debug .= ' barra neg';
                     }
-                } else {
-                    $contadorBarrasPosSaldoNeg++;
-                    $debug .= ' barra neg';
                 }
+
+
+
             } else {
+
                 $contadorBarrasSaldoNeg++;
 
-                $debug .= ' saldo neg <strong>' . $sql['vl_saldo'] . '</strong>';;
+                $debug .= ' saldo neg <strong>' . $sql['vl_saldo'] . '</strong>';
 
-                if ($sql['vl_fechamento'] > $sql['vl_abertura']) {
-                    $contadorBarrasNegSaldoPos++;
-                    $debug .= ' barra pos';
-                } else {
-                    $contadorBarrasNegSaldoNeg++;
-                    $debug .= ' barra neg';
+                if ($idCompraVenda == 'V' || $idCompraVenda == 'T') {
 
-
-                    if (empty($gatilho)) {
-                        $gatilho = 'VD';
-                        $contadorOperacoesVd++;
-                        $debug .= '<span style="background-color:#db3a1a;color:white;"><strong> GATILHO ' . $gatilho . '</strong></span>';
+                    if ($sql['vl_fechamento'] > $sql['vl_abertura']) {
+                        $contadorBarrasNegSaldoPos++;
+                        $debug .= ' barra pos';
+                    } else {
+                        $contadorBarrasNegSaldoNeg++;
+                        $debug .= ' barra neg';
+    
+    
+                        if (empty($gatilho) ) {
+                            $gatilho = 'VD';
+                            $contadorOperacoesVd++;
+                            $debug .= '<span style="background-color:#db3a1a;color:white;"><strong> GATILHO ' . $gatilho . '</strong></span>';
+                        }
                     }
                 }
+
             }
         }
         
@@ -327,6 +346,38 @@ foreach ($filtro as $value) {
                     </div>
 
                     <div class="mb-3 row">
+                        <label for="nrIntervalo" class="col-sm-2 col-form-label">Intervalo</label>
+                        <div class="col-sm-2">
+                          <input type="number" min="1"  class="form-control" id="nrIntervalo" name="nrIntervalo" value="<?php echo empty($nrIntervalo)? 10 : $nrIntervalo; ?>">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label for="minPercentual" class="col-sm-2 col-form-label">Mínimo Percentual%</label>
+                        <div class="col-sm-2">
+                          <input type="number" min="1"  class="form-control" id="minPercentual" name="minPercentual" value="<?php echo empty($minPercentual)? 70 : $minPercentual; ?>">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label for="minOperacoes" class="col-sm-2 col-form-label">Mínimo Operações</label>
+                        <div class="col-sm-2">
+                          <input type="number" min="1"  class="form-control" id="minOperacoes" name="minOperacoes" value="<?php echo empty($minOperacoes)? 1 : $minOperacoes; ?>">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label for="minOperacoes" class="col-sm-2 col-form-label">Compra / Venda</label>
+                        <div class="col-sm-2">
+                            <select class="form-select" id="idCompraVenda" name="idCompraVenda">
+                                <option <?php if($idCompraVenda == 'C'){ ?> selected <?php } ?>  value="C">Compra</option>
+                                <option <?php if($idCompraVenda == 'V'){ ?> selected <?php } ?>  value="V">Venda</option>
+                                <option <?php if($idCompraVenda == 'T'){ ?> selected <?php } ?>  value="T">Compra e Venda</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
                         <label for="nrContratos" class="col-sm-2 col-form-label">Contratos</label>
                         <div class="col-sm-2">
                           <input type="number" min="1"  class="form-control" id="nrContratos" name="nrContratos" value="<?php echo empty($nrContratos)? 1 : $nrContratos; ?>">
@@ -352,7 +403,7 @@ foreach ($filtro as $value) {
         <br><br>
 
         <?php
-        retornaCard($resultado,$vlOperacaoGain,$vlOperacaoLoss);
+        retornaCard($resultado,$vlOperacaoGain,$vlOperacaoLoss,$minPercentual,$minOperacoes);
         ?>
 
 
@@ -364,11 +415,12 @@ foreach ($filtro as $value) {
 
 <?php
 
-function retornaCard($resultado,$vlOperacaoGain,$vlOperacaoLoss)
+function retornaCard($resultado,$vlOperacaoGain,$vlOperacaoLoss,$minPercentual,$minOperacoes)
 {
 
     $i = 1;
     $card = '';
+    $estatistica = array();
 
     foreach ($resultado as $value) {
         if ($i == 1) {
@@ -406,6 +458,42 @@ function retornaCard($resultado,$vlOperacaoGain,$vlOperacaoLoss)
 
         $resultadoInverso = ( $value['total_operacoes_cp_loss'] -  $value['total_operacoes_cp_gain']) + ($value['total_operacoes_vd_loss']  - $value['total_operacoes_vd_gain']);
 
+        if ($percAcertoCp >= $minPercentual && $value['total_operacoes_cp'] >= $minOperacoes) {
+            array_push($estatistica,array('intervalo' => $value['titulo']
+                                         ,'operacao' => 'Compra'
+                                         ,'percentual' => $percAcertoCp
+                                         ,'operacoes' => $value['total_operacoes_cp']
+                                         )
+                      );
+        }
+
+        if ($percAcertoCp <= (100 - $minPercentual) && $value['total_operacoes_cp'] >= $minOperacoes) {
+            array_push($estatistica,array('intervalo' => $value['titulo']
+                                         ,'operacao' => 'Compra'
+                                         ,'percentual' => $percAcertoCp
+                                         ,'operacoes' => $value['total_operacoes_cp']
+                                         )
+                      );
+        }
+
+        if ($percAcertoVd >= $minPercentual &&  $value['total_operacoes_vd'] >= $minOperacoes) {
+            array_push($estatistica,array('intervalo' => $value['titulo']
+                                         ,'operacao' => 'Venda'
+                                         ,'percentual' => $percAcertoVd
+                                         ,'operacoes' => $value['total_operacoes_vd']
+                                         )
+                      );
+        }
+
+        if ($percAcertoVd <= (100 - $minPercentual) &&  $value['total_operacoes_vd'] >= $minOperacoes) {
+            array_push($estatistica,array('intervalo' => $value['titulo']
+                                         ,'operacao' => 'Venda'
+                                         ,'percentual' => $percAcertoVd
+                                         ,'operacoes' => $value['total_operacoes_vd']
+                                         )
+                      );
+        }
+
 
         $card .= '<div class="col">
                     <div class="card">
@@ -436,10 +524,44 @@ function retornaCard($resultado,$vlOperacaoGain,$vlOperacaoLoss)
 
 
     $card .= '</div>';
+
+    imprimeTabelaEstatistica($estatistica);
+    
     echo ($card);
 }
 
 echo imprimeResultadoDiario($resultadoDiario,$nmPapel,$nrContratos,$vlOperacaoGain ,$vlOperacaoLoss );
+
+function imprimeTabelaEstatistica($estatistica){
+    $table = '<table class="table table-striped">
+    <thead>
+      <tr>
+        <th scope="col">Intervalo</th>
+        <th scope="col">Operação</th>
+        <th scope="col">Percentual</th>
+        <th scope="col">Operações</th>
+      </tr>
+    </thead>
+    <tbody>';
+
+    foreach ($estatistica as $key => $value) {
+        $table .='
+          <tr>
+            <td>'.$value['intervalo'].'</td>
+            <td>'.$value['operacao'].'</td>
+            <td>'.$value['percentual'].'%</td>
+            <td>'.$value['operacoes'].'</td>
+          </tr>'; 
+    }
+
+
+    $table .='
+    </tbody>
+  </table>'; 
+
+  echo $table;
+
+}
 
 function imprimeResultadoDiario($resultadoDiario,$nmPapel,$nrContratos,$vlOperacaoGain ,$vlOperacaoLoss ){
 
