@@ -12,6 +12,7 @@ $hrOperacao = '';
 $nrIntervalo = 0;
 $minPercentual = 0;
 $minOperacoes = 0;
+$nrRepeticoes = 0;
 $idCompraVenda = 'T';
 
 $listaPapeisVariacao = retornaPapelVariacao();
@@ -29,6 +30,7 @@ if (isset($_POST['submit'])) {
     $nrIntervalo = $_POST['nrIntervalo'];
     $minPercentual = $_POST['minPercentual'];
     $minOperacoes = $_POST['minOperacoes'];
+    $nrRepeticoes = $_POST['nrRepeticoes'];
     $idCompraVenda = $_POST['idCompraVenda'];
     $idDebug = $_POST['idDebug'];
     $nrContratos = $_POST['nrContratos'];
@@ -86,7 +88,7 @@ $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $filtro = array();
 
 $faixa = $nrIntervalo;
-$repeticoes = 80;
+$repeticoes = $nrRepeticoes;
    
 for ($i = 0; $i <= $repeticoes; $i++) {
 
@@ -348,7 +350,7 @@ foreach ($filtro as $value) {
                     <div class="mb-3 row">
                         <label for="nrIntervalo" class="col-sm-2 col-form-label">Intervalo</label>
                         <div class="col-sm-2">
-                          <input type="number" min="1"  class="form-control" id="nrIntervalo" name="nrIntervalo" value="<?php echo empty($nrIntervalo)? 10 : $nrIntervalo; ?>">
+                          <input type="number" min="1"  class="form-control" id="nrIntervalo" name="nrIntervalo" value="<?php echo empty($nrIntervalo)? 1000 : $nrIntervalo; ?>">
                         </div>
                     </div>
 
@@ -367,7 +369,14 @@ foreach ($filtro as $value) {
                     </div>
 
                     <div class="mb-3 row">
-                        <label for="minOperacoes" class="col-sm-2 col-form-label">Compra / Venda</label>
+                        <label for="nrRepeticoes" class="col-sm-2 col-form-label">Repetições</label>
+                        <div class="col-sm-2">
+                          <input type="number" min="1"  class="form-control" id="nrRepeticoes" name="nrRepeticoes" value="<?php echo empty($nrRepeticoes)? 80 : $nrRepeticoes; ?>">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label for="idCompraVenda" class="col-sm-2 col-form-label">Compra / Venda</label>
                         <div class="col-sm-2">
                             <select class="form-select" id="idCompraVenda" name="idCompraVenda">
                                 <option <?php if($idCompraVenda == 'C'){ ?> selected <?php } ?>  value="C">Compra</option>
